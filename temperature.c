@@ -6,6 +6,7 @@
  */
 #include "temperature.h"
 
+
 //Variables
     DIR *dir;
     struct dirent *dirent;
@@ -21,6 +22,10 @@
 
 int temp_init_mk(void)
 {
+    // Variables for main Thread
+    pthread_t temp_thread_ID; 
+    uint8_t thread_create_status;
+    
     dir = opendir (path);
     if (dir != NULL)
     {
@@ -53,6 +58,10 @@ int temp_init_mk(void)
    
    printf(devPath_0);
    printf(devPath_1);
+   
+   // >>>>>>>>> Create temp thread
+    thread_create_status = pthread_create(&temp_thread_ID , NULL , temp_thread , NULL);  
+    printf("temp_thread create: %d\n" , thread_create_status);
 }
 
 int temp_read_mk(void)
@@ -99,3 +108,12 @@ int temp_read_mk(void)
     }
 }
 
+void* temp_thread(void *arg)
+{
+    while(1)
+    {
+        temp_read_mk(); 
+        
+        usleep(3000000);
+    }
+}

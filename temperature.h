@@ -13,18 +13,14 @@
 extern "C" {
 #endif
 
-    #include <stdio.h>
-    #include <dirent.h>
-    #include <string.h>
-    #include <fcntl.h>
-    #include <stdlib.h>
-    #include <unistd.h>
-
-    
-    
+    #include "SmartHouse_pin_def.h"
+ 
     //Functions
     int temp_init_mk(void);
     int temp_read_mk(void);
+    
+    //Thread Function
+    void* temp_thread(void *arg); 
     
 #ifdef __cplusplus
 }

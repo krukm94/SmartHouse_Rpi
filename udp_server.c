@@ -7,6 +7,14 @@
  */
 
 #include "udp_server.h"
+#include "SmartHouse_pin_def.h"
+
+struct sockaddr_in server, client;
+int socket_desc, new_socket, c, recv_len;
+int slen;
+
+// >>>>>>>>>>>> Thread variables
+pthread_t UDP_thread_IDs;   //identyfikator wątku UDP
 
 int udp_server_init(void)
 {
@@ -55,16 +63,37 @@ void* udp_thread_1(void *arg)
         
         if ((recv_len = recvfrom(socket_desc, rec_buf, BUFLEN, 0, (struct sockaddr *) &client, &slen)) == -1)
         {
-            printf("recvfrom Error: %d\n", recv_len);
+            printf("\n#No data\n");
         }
+        else
+        {
+            printf("Received packet from %s:%d\n", inet_ntoa(client.sin_addr), ntohs(client.sin_port));
+            printf("Data: %s\n" , rec_buf);
+            
+            if(!strcmp(rec_buf , "LEDON"))
+            {
+                char* send_buf;
+                send_buf = malloc(30);
+
+                sprintf(send_buf , "Zapalono Diode!\n" );
+
+                if(sendto(socket_desc , send_buf , strlen(send_buf) ,0, (struct sockaddr *) &client, slen) ==  -1)
+                {
+                    printf("\n#ERROR in sendto: file udp_server.c line: 70\n");
+                }
+                
+                free(send_buf);
+                
+                printf("LEDON\n");
+                digitalWrite(LED_GREEN , HIGH);
+            }     
+            memset(rec_buf , 0 , BUFLEN);
+            free(rec_buf);
+            memset((char *) &client, 0, sizeof(client));
+        }
+
         
-        printf("Received packet from %s:%d\n", inet_ntoa(client.sin_addr), ntohs(client.sin_port));
-	printf("Data: %s\n" , rec_buf);
-        
-        memset(rec_buf , 0 , BUFLEN);
-        free(rec_buf);
-        memset((char *) &client, 0, sizeof(client));
-        
-        usleep(5000000);
+        usleep(3000000);
+        digitalWrite(LED_GREEN , LOW);
     }
 }

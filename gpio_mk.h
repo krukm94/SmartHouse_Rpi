@@ -15,15 +15,18 @@ extern "C" {
 #endif
     
 // INCLUDES
-#include <wiringPi.h>
 #include "SmartHouse_pin_def.h"  
 
 
 // FUNCTIONS
-    int gpio_init(void);
-    int button_en_int(void);
+    uint8_t gpio_init(void);
+    uint8_t button_en_int(void);
+    uint8_t move_1_en_int(void);
+    uint8_t wetness_en_int(void);
+    
     void button_int_func(void);
-   
+    void move_1_int_func(void);
+    void wetness_int_func(void);
 
 #ifdef __cplusplus
 }

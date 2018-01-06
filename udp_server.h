@@ -14,28 +14,18 @@ extern "C" {
 #endif
 
 // >>>>>>>>> INCLUDES
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
+#include "SmartHouse_pin_def.h"
     
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <arpa/inet.h> 
-#include <pthread.h>
+
 
 // >>>>>>>> SOCKET SETTINGS
 #define PORT 8888
 
 // >>>>>>>> Variables
 #define BUFLEN 512
- 
-struct sockaddr_in server, client;
-int socket_desc, new_socket, c, recv_len;
-int slen;
-
-// >>>>>>>>>>>> Thread variables
-pthread_t UDP_thread_IDs;   //identyfikator wątku UDP
 
 // >>>>>>>>>>>> Functions
 int udp_server_init(void);
