@@ -19,10 +19,10 @@ extern "C" {
 
 
 // FUNCTIONS
-    uint8_t gpio_init(void);
-    uint8_t button_en_int(void);
-    uint8_t move_1_en_int(void);
-    uint8_t wetness_en_int(void);
+    int8_t gpio_init(void);
+    int8_t button_en_int(void);
+    int8_t move_1_en_int(void);
+    int8_t wetness_en_int(void);
     
     void button_int_func(void);
     void move_1_int_func(void);

@@ -13,10 +13,12 @@
 extern "C" {
 #endif
 
+
+   
     #include "SmartHouse_pin_def.h"
  
     //Functions
-    int temp_init_mk(void);
+    int8_t temp_init_mk(void);
     int temp_read_mk(void);
     
     //Thread Function

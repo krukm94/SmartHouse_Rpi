@@ -9,10 +9,8 @@
 
 #include "SmartHouse_pin_def.h"
 
-
-/*
- * 
- */
+//GLOBAL CONFIG SRUCTURE
+volatile struct smarthouse_config smarthouse_struct;
 
 void* main_thread(void *arg); 
 
@@ -22,7 +20,17 @@ int main(void) {
     pthread_t main_thread_ID; 
     uint8_t thread_create_status;
     
-    printf("\n\r\n\r############## M.KRUK ##############\n\r \n\r ----------> SmartHouse <---------- \n\r\n\r\n");
+    struct tm *time_mk;
+    time_t ti;
+    
+    time(&ti);
+    time_mk = localtime(&ti);
+    
+    printf("\n\n############## M.KRUK D.GORGON##############\n\n ----------> SmartHouse <---------- \n\n");
+    printf("Date: %d.%d.%d Time: %d:%d:%d \n\n" , time_mk->tm_mday , time_mk->tm_mon + 1 , time_mk->tm_year + 1900 , time_mk->tm_hour + 1, time_mk->tm_min , time_mk->tm_sec);
+    
+    // >>>>>>>>>>> SET Default config 
+    default_config();
     
     // >>>>>>>>>>> Initialize GPIO
     gpio_init();  
@@ -38,8 +46,10 @@ int main(void) {
     
     // >>>>>>>>> Create main thread
     thread_create_status = pthread_create(&main_thread_ID , NULL , main_thread , NULL);  
-    printf("main_thread create: %d\n" , thread_create_status);
+    printf("$ main_thread create: %d\n" , thread_create_status);
      
+    printf("\n\n ----------> INIT SYSTEM DONE! <------------\n");
+    
     // >>>>>>>>>>>>>> WHILE
     while(1)  usleep(5000000);
  
@@ -49,33 +59,9 @@ int main(void) {
 // >>>>>>>>>>>>>>> MAIN THREAD
 void* main_thread(void *arg)
 {
-    //Variable for move detection
-    uint8_t move;
-    
-    while(1)
-    {
-      move = digitalRead(MOVE_1);
-      digitalWrite(LED_GREEN , LOW);
-    
-        if (move == 1)
-        {
-            printf("Wykryto ruch: %d \n" , move);
-            digitalWrite(LED_GREEN , HIGH);     
-        }
-        usleep(500000);
-    }
+    while(1) usleep(500000);
 }
 
-void error_Func(void)
-{    
-    printf("\n\n ERROR!!!\n");
-    while(1){
-        digitalWrite(LED_RED , HIGH);
-        delay(100);
-        digitalWrite(LED_RED , LOW);
-        delay(100);
-    }
-}
 
 // END OF FILE
 

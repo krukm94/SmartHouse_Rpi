@@ -12,12 +12,13 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+    
+
 
 // >>>>>>>>> INCLUDES
 #include "SmartHouse_pin_def.h"
     
 #include <sys/socket.h>
-#include <sys/types.h>
 #include <arpa/inet.h> 
 
 
@@ -28,7 +29,7 @@ extern "C" {
 #define BUFLEN 512
 
 // >>>>>>>>>>>> Functions
-int udp_server_init(void);
+int8_t udp_server_init(void);
 void* udp_thread_1(void *arg);    
 
 #ifdef __cplusplus
