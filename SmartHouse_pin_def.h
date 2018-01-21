@@ -38,7 +38,7 @@ extern "C" {
 #define PRINT_UDP_DATA_ON_TERMINAL          0
 #define UDP_THREAD_SLEEP_uS                 1000
     
-#define PRINT_TEMP_ON_TERMINAL              1
+#define PRINT_TEMP_ON_TERMINAL              0
 #define TMEP_THREAD_SLEEP_uS                3000000    
     
 #define PRINT_LUX_ON_TERMINAL               0
@@ -76,6 +76,7 @@ struct smarthouse_config{
     //MOTOIN SENSOR VARIABLES
     uint8_t motion_threshold_action[5];           // MOTION THRESHOLD ACTION
     uint8_t motion_sensor_activate;               // FLAG FOR ACTIVATE SENSOR
+    char last_move[25];                           //STRING CONTAINS LAST MOVE DATE AND TIME
     
     //BUTTON VARIABLES
     uint8_t button_action[5];                      // BUTTON ACTION

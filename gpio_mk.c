@@ -12,6 +12,8 @@
 //GLOBAL CONFIG SRUCTURE
 extern volatile struct smarthouse_config smarthouse_struct;
 
+volatile uint8_t gpio_cnt;
+
 /* 
  * Func:   gpio_init
  * Description: Init GPIO (Button, diodes, relays, and others)
@@ -179,6 +181,14 @@ void button_int_func(void)
             save_config();
         }
     }
+    
+    //ACTION 
+    gpio_cnt = 0;
+    while(smarthouse_struct.button_action[gpio_cnt] != 0)
+    {
+        action(smarthouse_struct.button_action[gpio_cnt]);
+        gpio_cnt++;
+    }
 }
 
 /* 
@@ -187,7 +197,31 @@ void button_int_func(void)
  */
 void move_1_int_func(void)
 {
-    if(smarthouse_struct.motion_sensor_activate == 1) save_report("Movement detected! (Sensor 1)");
+    //Timer variables
+    struct tm *time_mk;
+    time_t ti;
+    
+    // TIMER actions
+    time(&ti);
+    time_mk = localtime(&ti);
+    
+    //Save Time 
+    sprintf(smarthouse_struct.last_move , "%d.%d.%d %d:%d:%d\n" , time_mk->tm_mday , time_mk->tm_mon + 1 , time_mk->tm_year + 1900 , time_mk->tm_hour + 1, time_mk->tm_min , time_mk->tm_sec);
+       
+    //Do sth if motion actibatet
+    if(smarthouse_struct.motion_sensor_activate == 1) 
+    {
+        //SAve report
+        save_report("Movement detected! (Sensor 1)");
+
+        //ACTION 
+        gpio_cnt = 0;
+        while(smarthouse_struct.motion_threshold_action[gpio_cnt] != 0)
+        {
+            action(smarthouse_struct.motion_threshold_action[gpio_cnt]);
+            gpio_cnt++;
+        }
+    }
 }
 
 
@@ -200,6 +234,14 @@ void wetness_int_func(void)
     if(smarthouse_struct.wetness_sensor_activate == 1)
     {
         if(digitalRead(WETNESS) == 0) save_report("Wetness is to low!");
+        
+        //ACTION 
+        gpio_cnt = 0;
+        while(smarthouse_struct.wetness_threshold_action[gpio_cnt] != 0)
+        {
+            action(smarthouse_struct.wetness_threshold_action[gpio_cnt]);
+            gpio_cnt++;
+        }
     }
 }
 

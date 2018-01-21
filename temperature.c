@@ -143,95 +143,101 @@ void* temp_thread(void *arg)
 
     while(1)
     {
+        
         temp_read_mk();   //Read temperature
         
-        //Check threshold value
-        if(smarthouse_struct.temp_1_value > smarthouse_struct.temp_1_threshold_high)
+        if(smarthouse_struct.temp_1_activate)
         {
-            temp_1_threshold_low_cnt = 0;
-            
-            temp_1_threshold_high_cnt++;
-            if(temp_1_threshold_high_cnt > 20) temp_1_threshold_high_cnt = 2;
-            
-            if(temp_1_threshold_high_cnt == 1)
+            //Check threshold value
+            if(smarthouse_struct.temp_1_value > smarthouse_struct.temp_1_threshold_high)
             {
-                //ACTION
-                save_report("TEMP_1 Threshold HIGH");
-                
-                local_cnt = 0;     
-                while(smarthouse_struct.temp_1_threshold_high_action[local_cnt] != 0)
+                temp_1_threshold_low_cnt = 0;
+
+                temp_1_threshold_high_cnt++;
+                if(temp_1_threshold_high_cnt > 20) temp_1_threshold_high_cnt = 2;
+
+                if(temp_1_threshold_high_cnt == 1)
                 {
-                    action(smarthouse_struct.temp_1_threshold_high_action[local_cnt]);
-                    local_cnt++;
-                }
-                
-            }
-        }
-        else if(smarthouse_struct.temp_1_value < smarthouse_struct.temp_1_threshold_low)
-        {
-            temp_1_threshold_high_cnt = 0;
-             
-            temp_1_threshold_low_cnt++;
-            if(temp_1_threshold_low_cnt > 20) temp_1_threshold_low_cnt = 2;
-            
-            if(temp_1_threshold_low_cnt == 1)
-            {
-                //ACTION
-                save_report("TEMP_1 Threshold LOW");
-                
-                local_cnt = 0;     
-                while(smarthouse_struct.temp_1_threshold_low_action[local_cnt] != 0)
-                {
-                    action(smarthouse_struct.temp_1_threshold_low_action[local_cnt]);
-                    local_cnt++;
+                    //ACTION
+                    save_report("TEMP_1 Threshold HIGH");
+
+                    local_cnt = 0;     
+                    while(smarthouse_struct.temp_1_threshold_high_action[local_cnt] != 0)
+                    {
+                        action(smarthouse_struct.temp_1_threshold_high_action[local_cnt]);
+                        local_cnt++;
+                    }
+
                 }
             }
-        }
-        
-        
-        // >>>>>>>>>>>> TMEP 2
-        if(smarthouse_struct.temp_2_value > smarthouse_struct.temp_2_threshold_high)
-        {
-            temp_2_threshold_low_cnt = 0;
-            
-            temp_2_threshold_high_cnt++;
-            if(temp_2_threshold_high_cnt > 20) temp_2_threshold_high_cnt = 2;
-            
-            if(temp_2_threshold_high_cnt == 1)
+            else if(smarthouse_struct.temp_1_value < smarthouse_struct.temp_1_threshold_low)
             {
-                //ACTION
-                save_report("TEMP_2 Threshold high");
-                
-                local_cnt = 0;     
-                while(smarthouse_struct.temp_2_threshold_high_action[local_cnt] != 0)
+                temp_1_threshold_high_cnt = 0;
+
+                temp_1_threshold_low_cnt++;
+                if(temp_1_threshold_low_cnt > 20) temp_1_threshold_low_cnt = 2;
+
+                if(temp_1_threshold_low_cnt == 1)
                 {
-                    action(smarthouse_struct.temp_2_threshold_high_action[local_cnt]);
-                    local_cnt++;
-                }
-                
-            }
-        }
-        else if(smarthouse_struct.temp_2_value < smarthouse_struct.temp_2_threshold_low)
-        {
-            temp_2_threshold_high_cnt = 0;
-             
-            temp_2_threshold_low_cnt++;
-            if(temp_2_threshold_low_cnt > 20) temp_2_threshold_low_cnt = 2;
-            
-            if(temp_2_threshold_low_cnt == 1)
-            {
-                //ACTION
-                save_report("TEMP_2 Threshold low");
-                
-                local_cnt = 0;     
-                while(smarthouse_struct.temp_2_threshold_low_action[local_cnt] != 0)
-                {
-                    action(smarthouse_struct.temp_2_threshold_low_action[local_cnt]);
-                    local_cnt++;
+                    //ACTION
+                    save_report("TEMP_1 Threshold LOW");
+
+                    local_cnt = 0;     
+                    while(smarthouse_struct.temp_1_threshold_low_action[local_cnt] != 0)
+                    {
+                        action(smarthouse_struct.temp_1_threshold_low_action[local_cnt]);
+                        local_cnt++;
+                    }
                 }
             }
+         }
+    
+    
+        if(smarthouse_struct.temp_2_activate)
+        {
+            // >>>>>>>>>>>> TMEP 2
+            if(smarthouse_struct.temp_2_value > smarthouse_struct.temp_2_threshold_high)
+            {
+                temp_2_threshold_low_cnt = 0;
+
+                temp_2_threshold_high_cnt++;
+                if(temp_2_threshold_high_cnt > 20) temp_2_threshold_high_cnt = 2;
+
+                if(temp_2_threshold_high_cnt == 1)
+                {
+                    //ACTION
+                    save_report("TEMP_2 Threshold high");
+
+                    local_cnt = 0;     
+                    while(smarthouse_struct.temp_2_threshold_high_action[local_cnt] != 0)
+                    {
+                        action(smarthouse_struct.temp_2_threshold_high_action[local_cnt]);
+                        local_cnt++;
+                    }
+
+                }
+            }
+            else if(smarthouse_struct.temp_2_value < smarthouse_struct.temp_2_threshold_low)
+            {
+                temp_2_threshold_high_cnt = 0;
+
+                temp_2_threshold_low_cnt++;
+                if(temp_2_threshold_low_cnt > 20) temp_2_threshold_low_cnt = 2;
+
+                if(temp_2_threshold_low_cnt == 1)
+                {
+                    //ACTION
+                    save_report("TEMP_2 Threshold low");
+
+                    local_cnt = 0;     
+                    while(smarthouse_struct.temp_2_threshold_low_action[local_cnt] != 0)
+                    {
+                        action(smarthouse_struct.temp_2_threshold_low_action[local_cnt]);
+                        local_cnt++;
+                    }
+                }
+            }
         }
-        
         
         usleep(TMEP_THREAD_SLEEP_uS);
     }

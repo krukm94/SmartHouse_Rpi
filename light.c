@@ -84,53 +84,55 @@ uint32_t init_TSL2561(void)
 void* lux_thread(void *arg)
 {
     while(1)
-    {     
-        // Read lux 
-       smarthouse_struct.light_value = read_lux();
-       
-       //Check threshold
-       if(smarthouse_struct.light_value > smarthouse_struct.light_threshold_high)
+    {    
+        if(smarthouse_struct.light_sensor_activate)
         {
-            light_threshold_low_cnt = 0;
-            
-             light_threshold_high_cnt++;
-            if(light_threshold_high_cnt > 20)  light_threshold_high_cnt = 2;
-            
-            if(light_threshold_high_cnt == 1)
+            // Read lux 
+           smarthouse_struct.light_value = read_lux();
+
+           //Check threshold
+           if(smarthouse_struct.light_value > smarthouse_struct.light_threshold_high)
             {
-                //ACTION      
-                save_report("Light Threshold HIGH");
-                light_local_cnt = 0;     
-                while(smarthouse_struct.light_threshold_high_action[light_local_cnt] != 0)
+                light_threshold_low_cnt = 0;
+
+                 light_threshold_high_cnt++;
+                if(light_threshold_high_cnt > 20)  light_threshold_high_cnt = 2;
+
+                if(light_threshold_high_cnt == 1)
                 {
-                    action(smarthouse_struct.light_threshold_high_action[light_local_cnt]);
-                    light_local_cnt++;
+                    //ACTION      
+                    save_report("Light Threshold HIGH");
+                    light_local_cnt = 0;     
+                    while(smarthouse_struct.light_threshold_high_action[light_local_cnt] != 0)
+                    {
+                        action(smarthouse_struct.light_threshold_high_action[light_local_cnt]);
+                        light_local_cnt++;
+                    }
+
                 }
-                
             }
+           else if(smarthouse_struct.light_value < smarthouse_struct.light_threshold_low)
+           {
+               light_threshold_high_cnt = 0;
+
+                 light_threshold_low_cnt++;
+                if(light_threshold_low_cnt > 20)  light_threshold_low_cnt = 2;
+
+                if(light_threshold_low_cnt == 1)
+                {
+                    //ACTION      
+                    save_report("Light Threshold LOW");
+                    light_local_cnt = 0;     
+
+                    while(smarthouse_struct.light_threshold_low_action[light_local_cnt] != 0)
+                    {
+                        action(smarthouse_struct.light_threshold_low_action[light_local_cnt]);
+                        light_local_cnt++;
+                    }
+
+                }
+           }
         }
-       else if(smarthouse_struct.light_value < smarthouse_struct.light_threshold_low)
-       {
-           light_threshold_high_cnt = 0;
-            
-             light_threshold_low_cnt++;
-            if(light_threshold_low_cnt > 20)  light_threshold_low_cnt = 2;
-            
-            if(light_threshold_low_cnt == 1)
-            {
-                //ACTION      
-                save_report("Light Threshold LOW");
-                light_local_cnt = 0;     
-                
-                while(smarthouse_struct.light_threshold_low_action[light_local_cnt] != 0)
-                {
-                    action(smarthouse_struct.light_threshold_low_action[light_local_cnt]);
-                    light_local_cnt++;
-                }
-                
-            }
-       }
-        
 #if PRINT_LUX_ON_TERMINAL == 1
         printf("$ Lux = %d \n" , read_lux());
 #endif

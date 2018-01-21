@@ -32,6 +32,8 @@ extern "C" {
 int8_t udp_server_init(void);
 void* udp_thread_1(void *arg);    
 
+int8_t compare_word(char * read_word , uint8_t *read_word_len , char *read_param , char *word , char *buffer);
+
 #ifdef __cplusplus
 }
 #endif

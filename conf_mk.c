@@ -243,6 +243,10 @@ void save_config()
         fputs(write_buf , fd);
     }
     
+    // MOTION (LAST MOVE)
+    sprintf(write_buf , "last_move\n%s\n" , smarthouse_struct.last_move);
+    fputs(write_buf , fd);
+    
     // BUTTON
     sprintf(write_buf , "button_action\n");
     fputs(write_buf , fd);
@@ -431,6 +435,7 @@ void read_config()
     
      memset(write_buf , 0 , len);
      getline(&write_buf , &len , fd); //READ NEXT LINE
+     
     // READ light_threshold_low
     if(strcmp(write_buf , "light_threshold_low\n") == 0)
     {
@@ -486,6 +491,14 @@ void read_config()
         }
     }
     else printf("Can't faind motion_threshold_action\n");
+    
+    memset(write_buf , 0 , len);
+    getline(&write_buf , &len , fd); //READ NEXT LINE
+    if(strcmp(write_buf , "last_move\n") == 0)
+    {
+        getline(smarthouse_struct.last_move , &len , fd);
+    }
+    else printf("Can't faind last_move buf\n");
     
     // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> BUTTON
     
@@ -607,8 +620,8 @@ int8_t default_config()
         // >>>>>>>>>> SET UP DEFAULT VARIABLES
         
         //TEMP 1 
-        smarthouse_struct.temp_1_threshold_high = 25.0;                     //SET HIGH THRESHOULF tO 25 deg Celcious
-        smarthouse_struct.temp_1_threshold_low = 17.0;                      //SET LOW THRESHOULD to 17 deg Celcious
+        smarthouse_struct.temp_1_threshold_high = 22.0;                     //SET HIGH THRESHOULF tO 25 deg Celcious
+        smarthouse_struct.temp_1_threshold_low = 20.0;                      //SET LOW THRESHOULD to 17 deg Celcious
         
         // THRESHOLD HIGH ACTION
         smarthouse_struct.temp_1_threshold_high_action[0] = RELAY_1_ON;    //SET RELAY 1 ON  
@@ -623,8 +636,8 @@ int8_t default_config()
            smarthouse_struct.temp_1_threshold_low_action[cnt] = 0;
         }   
         //TEMP 2 
-        smarthouse_struct.temp_2_threshold_high = 25.0;                     //SET HIGH THRESHOULF tO 25 deg Celcious
-        smarthouse_struct.temp_2_threshold_low = 17.0;                      //SET LOW THRESHOULD to 17 deg Celcious
+        smarthouse_struct.temp_2_threshold_high = 22.0;                     //SET HIGH THRESHOULF tO 25 deg Celcious
+        smarthouse_struct.temp_2_threshold_low = 20.0;                      //SET LOW THRESHOULD to 17 deg Celcious
 
         //THRESHOLD HIGH ACTION!
         smarthouse_struct.temp_2_threshold_high_action[0] = RELAY_2_ON;    //SET RELAY 2 ON   
@@ -640,8 +653,12 @@ int8_t default_config()
            smarthouse_struct.temp_2_threshold_low_action[cnt] = 0;
         }
         
+        //TEMP 1 i TEMP 2 activate
+        smarthouse_struct.temp_1_activate = 1;                              //ACTIVATE TEMP 1
+        smarthouse_struct.temp_2_activate = 1;                              //ACTIVATE TEMP 2
+        
         //LIGHT SENSOR
-        smarthouse_struct.light_threshold_high = 35;                       //SET HIGH THRESHOULD to 35 LUX
+        smarthouse_struct.light_threshold_high = 10;                       //SET HIGH THRESHOULD to 35 LUX
         smarthouse_struct.light_threshold_low = 5;                         //SET LOW LIGHT THRESHOULD to 5 LUX
                 
         smarthouse_struct.light_threshold_high_action[0] = RELAY_3_OFF;    //SET REALY 3 OFF
@@ -658,6 +675,8 @@ int8_t default_config()
            smarthouse_struct.light_threshold_low_action[cnt] = 0;
         }
         
+        smarthouse_struct.light_sensor_activate = 1;                        //ACTIVATE LIGHT SENSOR
+        
         //BUTTON ACTION
         for(cnt = 0 ; cnt < sizeof(smarthouse_struct.button_action) ; cnt++)    //SET ALLACTION TO NULL
         {
@@ -671,11 +690,17 @@ int8_t default_config()
            smarthouse_struct.motion_threshold_action[cnt] = 0;
         }
         
+        sprintf(smarthouse_struct.last_move , "NO DATA");
+        
+        smarthouse_struct.motion_sensor_activate = 0;                                      //MOTION SENSOR DDESACTIVATE ON START
+        
         //WETNESS SENSOR
         for(cnt = 0 ; cnt < sizeof(smarthouse_struct.wetness_threshold_action) ; cnt++)    //SET ALL ACTION TO NULL
         {
            smarthouse_struct.wetness_threshold_action[cnt] = 0;
         }
+        
+        smarthouse_struct.wetness_sensor_activate = 0;                              // DESactivate wetness sensor on start
         
         // SAVE CONFIG TO FILE
         save_config();
