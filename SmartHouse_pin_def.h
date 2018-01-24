@@ -53,7 +53,6 @@ extern "C" {
 // ->>>>>>>> CONFIG STRUCTURE
 struct smarthouse_config{
     
-    //TEMP SENSOR VARIABLES
     double temp_1_value;                        // TEMP 1 VALUE
     double temp_2_value;                        // TEMP 2 VALUE
     double temp_1_threshold_high;               // TEMP 1 THRESHOLD HIGH 

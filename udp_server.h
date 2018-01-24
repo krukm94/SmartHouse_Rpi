@@ -21,7 +21,9 @@ extern "C" {
 #include <sys/socket.h>
 #include <arpa/inet.h> 
 
-
+// Define helps get var name
+#define DUMP(buf,varname) sprintf(buf, "%s", #varname);  
+    
 // >>>>>>>> SOCKET SETTINGS
 #define PORT 8888
 
@@ -69,6 +71,18 @@ extern "C" {
 #define WETNESS_ACTIVE      ((uint8_t)0x41) //Active Wetness sensor
 #define WETNESS_ACT         ((uint8_t)0x42) //Wetness sensor actions
     
+// >>>>>>>>>>>>> FRAME Structure
+struct frame_struct{
+    
+    uint8_t     command; 
+    uint8_t     param_type;
+    uint8_t     rw;
+    uint16_t    size_of_param;  
+    char        param[50];
+    char        payload[50];
+};    
+    
+    
 // >>>>>>>>>>>> Functions
 int8_t udp_server_init(void);
 void* udp_thread_1(void *arg);    
@@ -80,6 +94,8 @@ int8_t decode_frame(char *rcv_frame , uint8_t* command ,uint8_t* rw , uint8_t* t
 
 int8_t is_action_ok(uint8_t action);
 int8_t is_action_name_ok(uint8_t action_name , uint8_t* array_index);
+
+void processing_th_command(struct frame_struct* frame_ptr);
 
 #ifdef __cplusplus
 }

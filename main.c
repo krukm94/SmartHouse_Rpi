@@ -9,6 +9,8 @@
 
 #include "SmartHouse_pin_def.h"
 
+
+
 //GLOBAL CONFIG SRUCTURE
 volatile struct smarthouse_config smarthouse_struct;
 
@@ -19,6 +21,7 @@ int main(void) {
     // Variables for main Thread
     pthread_t main_thread_ID; 
     uint8_t thread_create_status;
+    char buffor[20];
     
     struct tm *time_mk;
     time_t ti;
@@ -29,6 +32,7 @@ int main(void) {
     printf("\n\n############## M.KRUK D.GORGON##############\n\n ----------> SmartHouse <---------- \n\n");
     printf("Date: %d.%d.%d Time: %d:%d:%d \n\n" , time_mk->tm_mday , time_mk->tm_mon + 1 , time_mk->tm_year + 1900 , time_mk->tm_hour + 1, time_mk->tm_min , time_mk->tm_sec);
     
+  //  pritnf("$ File:%s Line:%s Var name:%s" , __FILE__ , __LINE__ , main_thread_ID);
     // >>>>>>>>>>> SET Default config 
     default_config();
     

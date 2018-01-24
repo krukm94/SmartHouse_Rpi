@@ -23,6 +23,10 @@ uint8_t compare_return;
 // >>>>>>>>>>>> Thread variables
 pthread_t UDP_thread_IDs;   //identyfikator wątku UDP
 
+// GLOBAL FRAME STRUCT
+struct frame_struct frame_str;
+struct frame_struct *frame_ptr;
+
 /* 
  * Func:   udp_server_init
  * Description: Init UDP server on PORT specifying in SmartHouse_pin_def.h
@@ -242,16 +246,24 @@ void* udp_thread_1(void *arg)
             int8_t ret = 0;
             uint8_t command,rw,type;
             uint16_t size;
-            char payload[20];
+            char payload[50];
             
             ret = decode_frame(rec_buf , &command , &rw , &type , &size , payload);
             
             printf("decode_frame = %d , command: 0x%x , rw: %d , type: %c , size: %d , %s\n\n" , ret , command , rw , type , size , payload);
             
             if(!ret){ //IF rec_buf contain proper frame
-                
+
                 int8_t send_return = 0;     // Return variable for send to function 
                 char return_buf_glob[50];
+                
+                //FELL frame struct
+                frame_str.command = command;
+                memcpy(frame_str.payload  , payload , sizeof(payload));
+                frame_str.param_type = type;
+                frame_str.rw = rw;
+                frame_str.size_of_param = size;
+                
                 
                 //COMMAND CONNECT
                     if(command == CONNECT){                            //0x2A = Check connect
@@ -323,52 +335,21 @@ void* udp_thread_1(void *arg)
                                 send_return = send_frame(command , "Wrong type of temp threshold high" , 30 , type , WRITE);
                             } 
                         }
-                    }
-                
-                //COMMAND TEMP_1_TS_HIGH_ACT
-                    else if(command == TEMP_1_TS_HIGH_ACT){
+                    }// IF THRESHOLD COMMAND
+                    else if(command == TEMP_1_TS_HIGH_ACT || command == TEMP_1_TS_LOW_ACT || command == TEMP_2_TS_HIGH_ACT || command == TEMP_2_TS_LOW_ACT || command == LUX_TS_HIGH_ACT || command == LUX_TS_LOW_ACT){
                         
-                        uint8_t flag=0 , array_id = 0;
-                        //Get nr of action and action char 
-                        char nr_of_action_char = payload[0];
-                        char action_char = payload[1];
-                        
-                      
-                        //Chec values 
-                        if(is_action_name_ok((uint8_t) nr_of_action_char , &array_id)) flag = 0x01;
-                        if(is_action_ok((uint8_t) action_char)) flag = 0x01;
-                        
-                        if(!flag){
-                            //GET VALUE
-                            sprintf(return_buf_glob , "%d" , smarthouse_struct.temp_1_threshold_high_action[array_id]);
-
-                            //READ 
-                            if(!rw) send_return = send_frame(command , return_buf_glob , strlen(return_buf_glob) , type , rw);
-
-                            //WRITE
-                            else{
-                                if(type == PARAM_TYPE_INT) { //Check type
-                                    smarthouse_struct.temp_1_threshold_high_action[array_id] = atoi(&payload[1]);
-                                    send_return = send_frame(command , "OK" , 4 , type , WRITE);
-#if PRINT_FRAME_DATA == 1
-                                    printf("$ Zapis temp 1 high threshold action[%d] OK = %d \n" , nr_of_action_char ,smarthouse_struct.temp_1_threshold_high_action[array_id]);
-#endif 
-                                }
-                                else{
-                                    send_return = send_frame(command , "Wrong type of temp threshold high action" , 30 , type , WRITE);
-                                } 
-                            }
-                        }else send_return = send_frame(command , "Wronge action number or action type" , 40 , type , WRITE);
-                    }
-                
-                
+                        frame_ptr = &frame_str;
+                        processing_th_command(frame_ptr);
+        
+                    }            
                     else{
                         char return_buf[15] = "Wrong command!";  
                         if(send_return = send_frame(command , return_buf , strlen(return_buf) , type , rw) != 0){
                                 printf("$ Warning: sendto , file udp_server.c , line 258\n");
                         }
-                    }
-            }
+                    } 
+            } 
+           
             
             command = 0; rw = 0 ; type = 0 ; size = 0; ret = 0;
             
@@ -577,51 +558,84 @@ int8_t is_action_name_ok(uint8_t action_name , uint8_t* array_index){
 }
 
 
-                    
-
+                   
 /* 
  * Func:   procesing_temp_th_command
  * Description: Process Temperature Threshold Commands
  * Return 
  */
 
-//void processing_temp_th_command(uint8_t command , char* payload , uint8_t* rw , uint8_t type){
-//    
-//    uint8_t flag=0 , array_id = 0 , send_return = 0;
-//    //Get nr of action and action char 
-//    char nr_of_action_char = payload[0];
-//    char action_char = payload[1];
-//    char return_buf[50];
-//    char param_string[20];
-//
-//    //Chec values 
-//    if(is_action_name_ok((uint8_t) nr_of_action_char , &array_id)) flag = 0x01;
-//    if(is_action_ok((uint8_t) action_char)) flag = 0x01;
-//
-//    if(!flag){
+void processing_th_command(struct frame_struct* fr_ptr){
+    
+    uint8_t flag = 0 , array_id = 0 , send_return = 0;
+    //Get nr of action and action char 
+
+    char return_buf[50];
+    char param_string[40];
+    
+    //pointer to smarthouse structur param
+    uint8_t* sm_struct_ptr;
+    
+    //Get values frome payload
+    char action_name = fr_ptr -> payload[0];
+    char action = fr_ptr -> payload[1];
+
+    //Chec values 
+    if(is_action_name_ok((uint8_t) action_name , &array_id)) flag = 0x01;
+    if(is_action_ok((uint8_t) action)) flag = 0x01;
+
+    if(!flag){
+            
 //        //GET VALUE
-//        if(command == TEMP_1_TS_HIGH_ACT){
-//            sprintf(return_buf , "%d" , smarthouse_struct.temp_1_threshold_high_action[array_id]);
-//            sprintf(param_string , "temp_1_ ")
-//        }
-//        
-//
-//        //READ 
-//        if(!rw) send_return = send_frame(command , return_buf , strlen(return_buf) , type , rw);
-//
-//        //WRITE
-//        else{
-//            if(type == PARAM_TYPE_INT) { //Check type
-//                smarthouse_struct.temp_1_threshold_high_action[array_id] = atoi(&payload[1]);
-//                send_return = send_frame(command , "OK" , 4 , type , WRITE);
-//#if PRINT_FRAME_DATA == 1
-//                printf("$ Zapis temp 1 high threshold action[%d] OK = %d \n" , nr_of_action_char ,smarthouse_struct.temp_1_threshold_high_action[array_id]);
-//#endif 
-//            }
-//            else{
-//                send_return = send_frame(command , "Wrong type of temp threshold high action" , 30 , type , WRITE);
-//            } 
-//        }
-//       }else send_return = send_frame(command , "Wronge action number or action type" , 40 , type , WRITE);
-////  
-//}
+        if(fr_ptr->command == TEMP_1_TS_HIGH_ACT){
+            sm_struct_ptr = smarthouse_struct.temp_1_threshold_high_action; sprintf(param_string , "temp_1_threshold_high_action");}
+        if(fr_ptr->command == TEMP_1_TS_LOW_ACT){
+            sm_struct_ptr = smarthouse_struct.temp_1_threshold_low_action; sprintf(param_string , "temp_1_threshold_low_action");}
+        if(fr_ptr->command == TEMP_2_TS_HIGH_ACT){
+            sm_struct_ptr = smarthouse_struct.temp_2_threshold_high_action; sprintf(param_string , "temp_2_threshold_high_action");}
+        if(fr_ptr->command == TEMP_2_TS_LOW_ACT){
+            sm_struct_ptr = smarthouse_struct.temp_2_threshold_low_action; sprintf(param_string , "temp_2_threshold_low_action"); }
+        if(fr_ptr->command == LUX_TS_HIGH_ACT){
+            sm_struct_ptr = smarthouse_struct.light_threshold_high_action; sprintf(param_string , "light_threshold_high_action");}
+        if(fr_ptr->command == LUX_TS_LOW_ACT){
+            sm_struct_ptr = smarthouse_struct.light_threshold_low_action; sprintf(param_string , "light_threshold_low_action");}
+
+        //Prepare bufors
+         sprintf(return_buf , "%d" , sm_struct_ptr[array_id]);  
+#if PRINT_FRAME_DATA == 1
+         printf("%s\n" , return_buf);
+#endif
+         
+        //READ 
+        if(!fr_ptr->rw){ 
+            send_return = send_frame(fr_ptr->command , return_buf , strlen(return_buf) , fr_ptr->param_type , fr_ptr->rw);
+#if PRINT_FRAME_DATA == 1
+            printf("$ Read ok, param: %s value: %s \n" , param_string , return_buf);
+#endif
+        }
+        //WRITE
+        else{
+            if(fr_ptr->param_type == PARAM_TYPE_INT) { //Check type
+                sm_struct_ptr[array_id] = action;
+                send_return = send_frame(fr_ptr->command , "OK" , 4 , fr_ptr->param_type , WRITE);
+#if PRINT_FRAME_DATA == 1
+                printf("$ Zapis %s [%d] OK = %d \n" ,param_string, array_id, sm_struct_ptr[array_id]);
+#endif 
+            }
+            else{
+                sprintf(return_buf , "Wrong type of %s" , param_string);
+                send_return = send_frame(fr_ptr->command  , return_buf , sizeof(return_buf) , fr_ptr->param_type , WRITE);
+#if PRINT_FRAME_DATA == 1
+                printf("%s\n" , return_buf);
+#endif
+            } 
+        }
+       }else {send_return = send_frame(fr_ptr->command , "Wronge action number or action type" , 40 , fr_ptr->param_type , WRITE);
+#if PRINT_FRAME_DATA == 1
+                printf("%s\n" , return_buf);
+#endif
+       }
+//  
+    memset(&frame_str , 0 , sizeof(frame_str));
+    printf("$ Po wyczyszczeniu frame_ptr, \ncommand:%d , payload: %s\n" , frame_ptr->command , frame_ptr ->payload);
+}
