@@ -38,6 +38,8 @@ extern "C" {
 #define PRINT_UDP_DATA_ON_TERMINAL          0
 #define UDP_THREAD_SLEEP_uS                 1000
     
+#define PRINT_FRAME_DATA                    1
+    
 #define PRINT_TEMP_ON_TERMINAL              0
 #define TMEP_THREAD_SLEEP_uS                3000000    
     
@@ -107,6 +109,7 @@ enum actions{
     LED_2_ON =      0x5A,
     LED_2_OFF =     0x5B 
 };
+
 #define ACTION1 ((uint8_t) 0x5C)
 #define ACTION2 ((uint8_t) 0x5D)
 #define ACTION3 ((uint8_t) 0x5E)

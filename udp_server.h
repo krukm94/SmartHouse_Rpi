@@ -78,6 +78,9 @@ int8_t compare_word(char* read_word , uint8_t* read_word_len , char* read_param 
 int8_t send_frame(uint8_t  command , char* param , uint16_t size_of_param , uint8_t param_type , uint8_t read_or_write);
 int8_t decode_frame(char *rcv_frame , uint8_t* command ,uint8_t* rw , uint8_t* type , uint16_t *size , char *payload);
 
+int8_t is_action_ok(uint8_t action);
+int8_t is_action_name_ok(uint8_t action_name , uint8_t* array_index);
+
 #ifdef __cplusplus
 }
 #endif
