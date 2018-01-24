@@ -54,11 +54,18 @@ function copyFileToTmpDir
 
 # Setup
 cd "${TOP}"
-mkdir -p ${CND_DISTDIR}/${CND_CONF}/${CND_PLATFORM}/package
+mkdir -p /home/pi/SmartHouse
 rm -rf ${NBTMPDIR}
 mkdir -p ${NBTMPDIR}
 
 # Copy files and create directories and links
+cd "${TOP}"
+makeDirectory  "${NBTMPDIR}//home/pi/SmartHouse" 0755
+
+cd "${TOP}"
+makeDirectory "${NBTMPDIR}/smarthouse/bin"
+copyFileToTmpDir "${OUTPUT_PATH}" "${NBTMPDIR}/${PACKAGE_TOP_DIR}bin/${OUTPUT_BASENAME}" 0755
+
 cd "${TOP}"
 makeDirectory "${NBTMPDIR}/smarthouse/bin"
 copyFileToTmpDir "${OUTPUT_PATH}" "${NBTMPDIR}/${PACKAGE_TOP_DIR}bin/${OUTPUT_BASENAME}" 0755
@@ -66,9 +73,9 @@ copyFileToTmpDir "${OUTPUT_PATH}" "${NBTMPDIR}/${PACKAGE_TOP_DIR}bin/${OUTPUT_BA
 
 # Generate tar file
 cd "${TOP}"
-rm -f ${CND_DISTDIR}/${CND_CONF}/${CND_PLATFORM}/package/smarthouse.tar
+rm -f /home/pi/SmartHouse/smarthouse
 cd ${NBTMPDIR}
-tar -vcf ../../../../${CND_DISTDIR}/${CND_CONF}/${CND_PLATFORM}/package/smarthouse.tar *
+tar -vcf /home/pi/SmartHouse/smarthouse *
 checkReturnCode
 
 # Cleanup

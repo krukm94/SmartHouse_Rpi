@@ -89,25 +89,29 @@ struct smarthouse_config{
 // ACTIONS DEFINITIONS
 enum actions{
     // RELAY ACTIONS
-    RELAY_1_ON =    1,
-    RELAY_1_OFF =   2,
+    RELAY_1_ON =    0x50,
+    RELAY_1_OFF =   0x51,
     
-    RELAY_2_ON =    3,
-    RELAY_2_OFF =   4,
+    RELAY_2_ON =    0x52,
+    RELAY_2_OFF =   0x53,
     
-    RELAY_3_ON =    5,
-    RELAY_3_OFF =   6,
+    RELAY_3_ON =    0x54,
+    RELAY_3_OFF =   0x55,
     
-    RELAY_4_ON =    7,
-    RELAY_4_OFF =   8,
+    RELAY_4_ON =    0x56,
+    RELAY_4_OFF =   0x57,
     
-    LED_1_ON =      9,
-    LED_1_OFF =     10,
+    LED_1_ON =      0x58,
+    LED_1_OFF =     0x59,
     
-    LED_2_ON =      11,
-    LED_2_OFF =     12 
+    LED_2_ON =      0x5A,
+    LED_2_OFF =     0x5B 
 };
-
+#define ACTION1 ((uint8_t) 0x5C)
+#define ACTION2 ((uint8_t) 0x5D)
+#define ACTION3 ((uint8_t) 0x5E)
+#define ACTION4 ((uint8_t) 0x5F)
+#define ACTION5 ((uint8_t) 0x60)
   
 #define LED_RED     2   // 2 is GPIO2 (Rv1:21 - Rv2:27)
 #define LED_GREEN   3   // 3 is GPIO3 (BCM 22)
@@ -125,7 +129,7 @@ enum actions{
 //WETNESS SENSOR
 #define WETNESS 25     // 37 is GPIO 25 (BCM26)
 
-    void error_Func(void);
+    void error_Func(char *error);
     int8_t default_config();
     void save_config();
     void read_config();

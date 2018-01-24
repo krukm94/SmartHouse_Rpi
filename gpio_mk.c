@@ -109,7 +109,7 @@ int8_t button_en_int(void)
     if(return_value = wiringPiISR(BUTTON_0 , INT_EDGE_RISING , &button_int_func) < 0)
     {
         printf("\nERROR IN: wiringPiISR(BUTTON_0 , INT_EDGE_FALLING , &button_int_func)\n");
-        error_Func();
+        error_Func(" ");
     }
     else printf("$ Button 0 interrupt enable \n");
     
@@ -126,7 +126,7 @@ int8_t move_1_en_int(void)
     if(return_value = wiringPiISR(MOVE_1 , INT_EDGE_RISING , &move_1_int_func) < 0)
     {
         printf("\n ERROR IN:  wiringPiISR(MOVE_1 , INT_EDGE_RISING , &move_1_int_func) = %d\n" , return_value);
-        error_Func();
+        error_Func(" ");
     }
     else printf("$ Move 1 interrupt enable: %d \n" , return_value);
     
@@ -143,7 +143,7 @@ int8_t wetness_en_int(void)
     if(return_value = wiringPiISR(WETNESS , INT_EDGE_FALLING , &wetness_int_func) < 0)
     {
         printf("\n ERROR IN:  wiringPiISR(WETNESS , INT_EDGE_RISING , &wetness_int_func) = %d\n" , return_value);
-        error_Func();
+        error_Func(" ");
     }
     else printf("$ Wetness interrupt enable: %d \n" , return_value);
     
@@ -206,7 +206,7 @@ void move_1_int_func(void)
     time_mk = localtime(&ti);
     
     //Save Time 
-    sprintf(smarthouse_struct.last_move , "%d.%d.%d %d:%d:%d\n" , time_mk->tm_mday , time_mk->tm_mon + 1 , time_mk->tm_year + 1900 , time_mk->tm_hour + 1, time_mk->tm_min , time_mk->tm_sec);
+    snprintf((char *)smarthouse_struct.last_move , sizeof(smarthouse_struct.last_move) , "%d.%d.%d %d:%d:%d\n" , time_mk->tm_mday , time_mk->tm_mon + 1 , time_mk->tm_year + 1900 , time_mk->tm_hour + 1, time_mk->tm_min , time_mk->tm_sec);
        
     //Do sth if motion actibatet
     if(smarthouse_struct.motion_sensor_activate == 1) 

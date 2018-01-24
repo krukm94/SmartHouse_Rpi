@@ -17,6 +17,8 @@ struct sockaddr_in server, client;
 int socket_desc, new_socket, c, recv_len;
 int slen;
 
+int8_t word_len = 0;
+uint8_t compare_return;
 
 // >>>>>>>>>>>> Thread variables
 pthread_t UDP_thread_IDs;   //identyfikator wątku UDP
@@ -31,7 +33,6 @@ int8_t udp_server_init(void)
     struct timeval recv_timeout;
     recv_timeout.tv_sec = 0;
     recv_timeout.tv_usec = 1;
-   
     
     printf("\n --> Init UDP server <--\n");
     
@@ -74,7 +75,7 @@ int8_t udp_server_init(void)
 void* udp_thread_1(void *arg)
 {
     uint8_t cnt = 0;
-    uint8_t sendto_return = 0;
+    int8_t sendto_return = 0;
     
     while(1)
     {
@@ -85,7 +86,12 @@ void* udp_thread_1(void *arg)
         fflush(stdout);
         
         char* rec_buf;
+        char *searching_string;
+        char *searching_param;
+        
         rec_buf = malloc(BUFLEN);
+        searching_string = malloc(80);
+        searching_param = malloc(50);
         
         if ((recv_len = recvfrom(socket_desc, rec_buf, BUFLEN, 0, (struct sockaddr *) &client, &slen)) == -1)
         {
@@ -100,12 +106,13 @@ void* udp_thread_1(void *arg)
             printf("$ Data: %s\n" , rec_buf);
 #endif
             
+            
             if(strcmp(rec_buf , "LEDON") == 0)
             {
                 char* send_buf;
                 send_buf = malloc(30);
 
-                sprintf(send_buf , "$ Zapalono Diode!\n" );
+                sprintf(send_buf ,"$ Zapalono Diode!\n" );
                 
                     if(sendto_return = sendto(socket_desc , send_buf , strlen(send_buf) ,0, (struct sockaddr *) &client, slen) ==  -1)
                     {
@@ -140,7 +147,7 @@ void* udp_thread_1(void *arg)
                 char* send_buf;
                 send_buf = malloc(30);
                 
-                sprintf(send_buf , "%f\n" , smarthouse_struct.temp_1_value );
+                sprintf(send_buf ,"%f\n" , smarthouse_struct.temp_1_value );
                 
                     if(sendto_return = sendto(socket_desc , send_buf , strlen(send_buf) ,0, (struct sockaddr *) &client, slen) ==  -1)
                     {
@@ -173,7 +180,7 @@ void* udp_thread_1(void *arg)
                 send_buf = malloc(30);
 
                 
-                sprintf(send_buf , "%d\n" , smarthouse_struct.light_value );
+                sprintf(send_buf  ,"%d\n" , smarthouse_struct.light_value );
                 
                     if(sendto_return = sendto(socket_desc , send_buf , strlen(send_buf) ,0, (struct sockaddr *) &client, slen) ==  -1)
                     {
@@ -211,7 +218,7 @@ void* udp_thread_1(void *arg)
                 char* send_buf;
                 send_buf = malloc(150);
                
-                sprintf(send_buf , "%s\n" , smarthouse_struct.last_move );
+                snprintf(send_buf , sizeof(send_buf) ,"%s\n" , smarthouse_struct.last_move );
                 
                     if(sendto_return = sendto(socket_desc , send_buf , strlen(send_buf) ,0, (struct sockaddr *) &client, slen) ==  -1)
                     {
@@ -219,94 +226,163 @@ void* udp_thread_1(void *arg)
                     }            
                 free(send_buf);  
             }
-           
-            //Reserve memory for stirng
-//            volatile char *searching_string;
-//            volatile char *searching_param;
-//
-//            searching_string = malloc(80);
-//            searching_param = malloc(50);
-//            uint8_t word_len = 0;
-//            uint8_t compare_return;
-//
-//            if(!(compare_return = compare_word(searching_string , &word_len , searching_param ,"SET_TEMP1_ACTIVE\n" , rec_buf)))
-//            {
-//               // printf("SET OK, PARAM:%s\n" , searching_param);
-//                memset(searching_string , 0 , strlen(searching_string));
-//            }
-//            
-//                
-//            if(!(compare_return = compare_word(searching_string , &word_len , searching_param  ,"ELOELO\n" , rec_buf)))
-//            {
-//               printf("ELO OK\n");
-//               memset(searching_string , 0 , strlen(searching_string));
-//            }
-//  
-//            free(searching_string);
-//            free(searching_param);
             
+            // _--------------------------- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> TESTY
+            if(strcmp(rec_buf , "FRAME_TEST") == 0){
+                
+                char test_buf[30] = "TEST RAMKI-> DAREK TO GEJ";
+                uint8_t command = 0x2A;
+                uint8_t param_type = 0x53;
+                
+                send_frame(command, test_buf , strlen(test_buf) , param_type , 1);
+            }
             
+            // ----------------------------------------------------------------------------------->>>>>>>>>>>>>>>>>>>>>> WORK ON FRAMES
             
+            int8_t ret = 0;
+            uint8_t command,rw,type;
+            uint16_t size;
+            char payload[20];
             
-            // TEMP_1_ACTIVE_READ
-//            if(strcmp(rec_buf , "READ_TEMP1_ACTIVE") == 0)
-//            {
-//                char* send_buf;
-//                send_buf = malloc(150);
-//               
-//                sprintf(send_buf , "%d\n" , smarthouse_struct.temp_1_activate );
-//                
-//                    if(sendto_return = sendto(socket_desc , send_buf , strlen(send_buf) ,0, (struct sockaddr *) &client, slen) ==  -1)
-//                    {
-//                        printf("\n ERROR in sendto = %d:\n" , sendto_return);
-//                    }            
-//                free(send_buf);  
-//            }
+            ret = decode_frame(rec_buf , &command , &rw , &type , &size , payload);
+            
+            printf("decode_frame = %d , command: 0x%x , rw: %d , type: %c , size: %d , %s\n\n" , ret , command , rw , type , size , payload);
+            
+            if(!ret){ //IF rec_buf contain proper frame
+                
+                int8_t send_return = 0;     // Return variable for send to function 
+                char return_buf_glob[50];
+                
+                //COMMAND CONNECT
+                    if(command == CONNECT){                            //0x2A = Check connect
+                        char return_buf[15] = "CONNECT_OK";
 
-               
-//            if(getc(rec_buf) == "SET_TEMP1_ACTIVE")
-//            {
-//                printf("RECIVE: SET_TEMP1_ACTIVE\n");
-//            }
-//            // TEMP_1_ACTIVE_SET
-//            if(strcmp(rec_buf , "SET_TEMP1_ACTIVE_1") == 0)
-//            {
-//                char* send_buf;
-//                send_buf = malloc(150);
-//                
-//                smarthouse_struct.temp_1_activate = 1;
-//                
-//                sprintf(send_buf , "TEMP1_ACTIVATE\n");
-//                
-//                if(sendto_return = sendto(socket_desc , send_buf , strlen(send_buf) ,0, (struct sockaddr *) &client, slen) ==  -1)
-//                {
-//                    printf("\n ERROR in sendto = %d:\n" , sendto_return);
-//                }   
-//                
-//                free(send_buf);  
-//            }
-//            
-//            // TEMP_1_ACTIVE_SET
-//            if(strcmp(rec_buf , "SET_TEMP1_ACTIVE_0") == 0)
-//            {
-//                char* send_buf;
-//                send_buf = malloc(150);
-//                
-//                smarthouse_struct.temp_1_activate = 0;
-//                
-//                free(send_buf);  
-//            }
+                        if(!rw){
+                            if(send_return = send_frame(CONNECT , return_buf , strlen(return_buf) , PARAM_TYPE_STRING , rw) != 0){
+                                printf("$ Warning: sendto , file udp_server.c , line 258\n");
+                            }
+                        }
+
+                    }
+                //COMMAND TEMP_1_ACTIVE
+                    else if(command == TEMP_1_ACTIVE){
+                        
+                        //GET VALUE
+                        sprintf(return_buf_glob , "%d" , smarthouse_struct.temp_1_activate);
+                        
+                        //READ 
+                        if(!rw) send_return = send_frame(command , return_buf_glob , strlen(return_buf_glob) , type , rw);
+                        
+                        //WRITE
+                        else {
+                            if(type == PARAM_TYPE_INT) { //Check type
+                                smarthouse_struct.temp_1_activate = atoi(payload);
+                                send_return = send_frame(command , "OK" , 4 , type , WRITE);
+                            }
+                            else{
+                                send_return = send_frame(command , "Wrong type of temp active" , 30 , type , WRITE);
+                            } 
+                        }
+                    }
+                    
+                //COMMAND TEMP_1_VALUE
+                    else if(command == TEMP_1_VALUE){
+                        
+                        //GET VALUE
+                        sprintf(return_buf_glob , "%d" , smarthouse_struct.temp_1_value);
+                        
+                        //READ 
+                        if(!rw) send_return = send_frame(command , return_buf_glob , strlen(return_buf_glob) , type , rw);
+                        
+                        //WRITE
+                        else {
+                            if(type == PARAM_TYPE_FLOAT) { //Check type
+                                smarthouse_struct.temp_1_value = atof(payload);
+                                send_return = send_frame(command , "OK" , 4 , type , WRITE);
+                            }
+                            else{
+                                send_return = send_frame(command , "Wrong type of temp value" , 30 , type , WRITE);
+                            } 
+                        }
+                    }
+                
+                //COMMAND TEMP_1_TS_HIGH
+                    else if(command == TEMP_1_TS_HIGH){
+                        
+                        //GET VALUE
+                        sprintf(return_buf_glob , "%d" , smarthouse_struct.temp_1_threshold_high);
+                        
+                        //READ 
+                        if(!rw) send_return = send_frame(command , return_buf_glob , strlen(return_buf_glob) , type , rw);
+                        
+                        //WRITE
+                        else {
+                            if(type == PARAM_TYPE_FLOAT) { //Check type
+                                smarthouse_struct.temp_1_threshold_high = atof(payload);
+                                send_return = send_frame(command , "OK" , 4 , type , WRITE);
+                            }
+                            else{
+                                send_return = send_frame(command , "Wrong type of temp threshold high" , 30 , type , WRITE);
+                            } 
+                        }
+                    }
+                
+                //COMMAND TEMP_1_TS_HIGH_ACT
+                    else if(command == TEMP_1_TS_HIGH_ACT){
+                        
+                        uint8_t flag=0;
+                        //Get nr of action and action char 
+                        char nr_of_action_char = payload[0];
+                        char action_char = payload[1];
+                        
+                        //Chec values 
+                        //if(nr_of_action_char != ACTION1 || nr_of_action_char != ACTION2 || nr_of_action_char != ACTION3 || nr_of_action_char != ACTION4 || nr_of_action_char != ACTION5) flag = 1;
+                        //if(action_char != )
+                        
+                       // printf("c1:%c c2:%c p:%s\n" , nr_of_action_char , action_char, payload);
+                           
+                        //GET VALUE
+                        sprintf(return_buf_glob , "%d" , smarthouse_struct.temp_1_threshold_high_action[nr_of_action_char]);
+                        
+                        //READ 
+                        if(!rw) send_return = send_frame(command , return_buf_glob , strlen(return_buf_glob) , type , rw);
+                        
+                        //WRITE
+                        else {
+                            if(type == PARAM_TYPE_INT) { //Check type
+                                smarthouse_struct.temp_1_threshold_high_action[nr_of_action_char] = atoi(&payload[1]);
+                                send_return = send_frame(command , "OK" , 4 , type , WRITE);
+                            }
+                            else{
+                                send_return = send_frame(command , "Wrong type of temp threshold high action" , 30 , type , WRITE);
+                            } 
+                        }
+                    }
+                
+                
+                    else{
+                        char return_buf[15] = "Wrong command!";  
+                        if(send_return = send_frame(command , return_buf , strlen(return_buf) , type , rw) != 0){
+                                printf("$ Warning: sendto , file udp_server.c , line 258\n");
+                        }
+                    }
+            }
             
+            command = 0; rw = 0 ; type = 0 ; size = 0; ret = 0;
+            
+            // ClEAR BUFORS etc. etc.
             memset(rec_buf , 0 , BUFLEN);
             free(rec_buf);
-            memset((char *) &client, 0, sizeof(client));
+            free(searching_string);
+            free(searching_param);
+     
+            memset( &client, 0, sizeof(client));
+            
+            
         }
-
         usleep(UDP_THREAD_SLEEP_uS);
         digitalWrite(LED_GREEN , LOW);
     }
-    
-
 }
 
 /* 
@@ -318,56 +394,136 @@ void* udp_thread_1(void *arg)
 int8_t compare_word(char* read_word , uint8_t* read_word_len , char* read_param , char* word , char* buffer)
 {
     uint8_t cnt = 0;
+    uint8_t cnt2 = 0;
     uint8_t read = 0;
-    char *read_buf;
-    int read_p;
+  
+    //EGZAMPLE OF buffer = "COMMAND=PARAM\n"
     
-    read_buf = malloc(30);
-    
-    while(read != 0x0A)                         // GET WORD
-    {
-        read_word[cnt] = buffer[cnt];
-        read = read_word[cnt];
+    while(read != 0x0A)                      // 0x0A = "\n"                     
+    { 
+        read = buffer[cnt];                  // Save char in local variable
+        
+        if(read == 0x3D) {                   // 0x3D = "="
+            cnt2 = cnt + 1;                
+            *read_word_len = cnt;        // Save word len
+        }
+        else read_word[cnt] = read;         // if read char is not equal "=" then save it to buffer
+ 
         cnt++;
     }  
-    
-    read_word_len = cnt - 1;
-    read = 0;
-    
-    while(read != 0x0A)                       // GET PARAM
-    {  
-        read_buf[cnt] = buffer[cnt];
-        read = read_buf[cnt];
-        
-        printf("param %c %s\n" , read , (char*)read_buf);
-        cnt++;
+   
+    for(cnt = 0 ; cnt < 20 ; cnt++){
+        read_param[cnt] = read_word[cnt2 + cnt];
+        if(read_param[cnt] == 0x0A) break;         // 0x0A = "\n"
     }
-    read_p = (int) atoi(read_buf);
-    
-    printf("word: %s , param: %s , read_p: %d , buf:%s\n" , read_word , read_buf , read_p ,buffer);
-    
-    free(read_buf);
-    
+
     return strcmp(read_word , word);
 }
 
+/* 
+ * Func:   send_frame
+ * Description: 
+ * Return 
+ */
 
+int8_t send_frame(uint8_t  command , char* param , uint16_t size_of_param , uint8_t param_type , uint8_t read_or_write)
+{
+    
+    //Variables
+    int8_t return_vaule;
+    char frame_buf[size_of_param + 7];   //Frame 
+    char start_frame[3];
+  
+    start_frame[0] = 0x24; // $
+    start_frame[1] = 0x4B; // K
+    start_frame[2] = 0x47; // G
+
+    //ADD Frame Start Bytes
+    memcpy(&frame_buf[0] , start_frame , sizeof(start_frame));
+    
+    //ADD Command
+    frame_buf[3] = command;
+   
+    //ADD Read or Write byte
+    if(read_or_write == 1) frame_buf[4] = 0x57; // 0x57 = "W"
+    else frame_buf[4] - 0x52; // 0x52 = "R"
+    
+    //ADD param type (Int = 0x49 , Float = 0x46 , String 0x53 
+    if(param_type == 0x49 || param_type == 0x46 || param_type == 0x53) frame_buf[5] = param_type;
+    else{
+        printf("-----> Warning! Wrong PARAM TYPE in send_frame (file udp_server.c line 309)\n");
+    }
+    //ADD size of param
+    frame_buf[6] = size_of_param;
+    //Fill payload
+    memcpy(&frame_buf[7] , (char*) param , size_of_param);
+    
+    //SEND FRAME
+    if(return_vaule = sendto(socket_desc , frame_buf , sizeof(frame_buf) ,0, (struct sockaddr *) &client, slen) ==  -1)
+    {
+        printf("\n ERROR in sendto (File udp_server.c line: 328\n");
+    }      
+    
+    return return_vaule;
+}
+
+/* 
+ * Func:   decode_frame
+ * Description: 
+ * Return 
+ */
+
+int8_t decode_frame(char *rcv_frame , uint8_t* command ,uint8_t* rw , uint8_t* type , uint16_t *size , char *payload)
+{
+    //Variables
+    int8_t return_value = 0 , sendto_return = 0;
+    char return_bufor[30];
+    uint8_t cnt = 0,start_of_frame = 0;
+    
+    //Find "Start of Frame" it should be equal "$KG"
+    for(cnt = 0 ; cnt < 20 ; cnt++){
+        if(rcv_frame[cnt] == 0x24 && rcv_frame[cnt+1] == 0x4B && rcv_frame[cnt+2] == 0x47) {
+            start_of_frame = cnt;
             
+            //GET Command
+            *command = rcv_frame[cnt+3];
+            
+            //Get Read or Write byte
+            if(rcv_frame[cnt+4] == 0x57) *rw = 1;
+            else if(rcv_frame[cnt+4] == 0x52) *rw = 0;
+            else{
+                sprintf(return_bufor , "Wrong R/W Byte!");
+                
+                return_value = 0x01;  
+                
+                //Send error messege
+                send_frame(*command , return_bufor , strlen(return_bufor), *type , *rw);
+            }
+            
+            //GET Type of Payload
+            *type = rcv_frame[cnt+5];
+            
+            if(!(*type == 0x49 || *type == 0x46 || *type == 0x53)){
+                sprintf(return_bufor , "Wrong Type Byte!");
+                
+                return_value = 0x02;
+                
+                //Send error messege
+                send_frame(*command , return_bufor , strlen(return_bufor), *type , *rw);
+            }
 
-            //Looking for stings
-//            cnt = 0;
-//            uint8_t search_pos = 0;
-//            
-//            for(cnt = 0; cnt < slen ; cnt++)
-//            {
-//                if(rec_buf[cnt] == searching_string[search_pos])
-//                {
-//                    search_pos++;
-//                    if(search_pos == strlen(searching_string))
-//                    {
-//                        
-//                    }     
-//                }
-//                else  search_pos = 0;
-//            }
+            //GET Size
+            *size = rcv_frame[cnt+6];
 
+            //GET Paylod
+            memcpy(payload , &rcv_frame[cnt+7] , *size);
+            
+            break;
+        }
+        else return 0x03;
+    }
+    
+
+    
+    return return_value;
+}

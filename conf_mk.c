@@ -17,9 +17,9 @@ int config_file_descriptor;
  * Func:  error_Func
  * Description: Error code
  */
-void error_Func(void)
+void error_Func(char *error)
 {    
-    printf("\n\n ERROR!!!\n");
+    printf("\n\n ERROR: %s\n" , error);
     while(1){
         digitalWrite(LED_RED , HIGH);
         delay(100);
@@ -486,7 +486,7 @@ void read_config()
         {
             getline(&write_buf , &len , fd); //READ NEXT LINE
             smarthouse_struct.motion_threshold_action[cnt] = (uint8_t) atoi(write_buf); 
-            printf("motion_threshold_action[%d] = %d\n" , cnt , smarthouse_struct.motion_threshold_action[cnt]);
+            printf("motion_threshold_action[%d] = %d\n" , (int)cnt , (int)smarthouse_struct.motion_threshold_action[cnt]);
             memset(write_buf , 0 , len);
         }
     }
@@ -496,7 +496,7 @@ void read_config()
     getline(&write_buf , &len , fd); //READ NEXT LINE
     if(strcmp(write_buf , "last_move\n") == 0)
     {
-        getline(smarthouse_struct.last_move , &len , fd);
+        getline((char**)smarthouse_struct.last_move , &len , fd);
     }
     else printf("Can't faind last_move buf\n");
     
@@ -690,7 +690,7 @@ int8_t default_config()
            smarthouse_struct.motion_threshold_action[cnt] = 0;
         }
         
-        sprintf(smarthouse_struct.last_move , "NO DATA");
+        snprintf((char*)smarthouse_struct.last_move , sizeof(smarthouse_struct.last_move) , (const char*)"NO DATA");
         
         smarthouse_struct.motion_sensor_activate = 0;                                      //MOTION SENSOR DDESACTIVATE ON START
         
