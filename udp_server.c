@@ -17,7 +17,7 @@ struct sockaddr_in server, client;
 int socket_desc, new_socket, c, recv_len;
 int slen;
 
-int8_t word_len = 0;
+int8_t word_len = 0 , rw_flag = 0;
 uint8_t compare_return;
 
 // >>>>>>>>>>>> Thread variables
@@ -130,119 +130,7 @@ void* udp_thread_1(void *arg)
                 digitalWrite(LED_GREEN , HIGH);
             } 
             
-            // RETURN CONNECT OK
-            if(strcmp(rec_buf , "CONNECT") == 0)
-            {
-                char* send_buf;
-                send_buf = malloc(30);
-                
-                sprintf(send_buf , "CONNECT_OK\n" );
-                
-                    if(sendto_return = sendto(socket_desc , send_buf , strlen(send_buf) ,0, (struct sockaddr *) &client, slen) ==  -1)
-                    {
-                       printf("\n ERROR in sendto = %d:\n" , sendto_return);
-                    }
-                free(send_buf);
-            }
-            
-            // RETURN TEMP_1 VALUE
-            if(strcmp(rec_buf , "TEMP_1") == 0)
-            {
-                char* send_buf;
-                send_buf = malloc(30);
-                
-                sprintf(send_buf ,"%f\n" , smarthouse_struct.temp_1_value );
-                
-                    if(sendto_return = sendto(socket_desc , send_buf , strlen(send_buf) ,0, (struct sockaddr *) &client, slen) ==  -1)
-                    {
-                        printf("\n ERROR in sendto = %d:\n" , sendto_return);
-                    }
 
-                free(send_buf);
-            }
-            
-            // RETURN TEMP_2 VALUE
-            if(strcmp(rec_buf , "TEMP_2") == 0)
-            {
-                char* send_buf;
-                send_buf = malloc(30);
-                
-                sprintf(send_buf , "%f\n" , smarthouse_struct.temp_2_value );
-                
-                    if(sendto_return = sendto(socket_desc , send_buf , strlen(send_buf) ,0, (struct sockaddr *) &client, slen) ==  -1)
-                    {
-                        printf("\n ERROR in sendto = %d:\n" , sendto_return);
-                    }
-
-                free(send_buf);
-            }
-            
-            // RETURN LIGHT VALUE
-            if(strcmp(rec_buf , "LUX") == 0)
-            {
-                char* send_buf;
-                send_buf = malloc(30);
-
-                
-                sprintf(send_buf  ,"%d\n" , smarthouse_struct.light_value );
-                
-                    if(sendto_return = sendto(socket_desc , send_buf , strlen(send_buf) ,0, (struct sockaddr *) &client, slen) ==  -1)
-                    {
-                        printf("\n ERROR in sendto = %d:\n" , sendto_return);
-                    }
-                free(send_buf);
-            }
-            
-            // RETURN LOG
-            if(strcmp(rec_buf , "LOG") == 0)
-            {
-                char* send_buf;
-                send_buf = malloc(150);
-                
-                FILE *fd;
-                size_t len =0;
-                
-                fd = fopen("/home/pi/SmartHouse/report_mk" , "r" );
-                
-                while(getline(&send_buf , &len , fd) != -1) //READ NEXT LINE
-                {              
-                    if(sendto_return = sendto(socket_desc , send_buf , strlen(send_buf) ,0, (struct sockaddr *) &client, slen) ==  -1)
-                    {
-                        printf("\n ERROR in sendto = %d:\n" , sendto_return);
-                    }
-                }
-                
-                free(send_buf);
-                fclose(fd);
-            }
-            
-            // RETURN MOVE STATUS
-            if(strcmp(rec_buf , "LAST_MOVE") == 0)
-            {
-                char* send_buf;
-                send_buf = malloc(150);
-               
-                snprintf(send_buf , sizeof(send_buf) ,"%s\n" , smarthouse_struct.last_move );
-                
-                    if(sendto_return = sendto(socket_desc , send_buf , strlen(send_buf) ,0, (struct sockaddr *) &client, slen) ==  -1)
-                    {
-                        printf("\n ERROR in sendto = %d:\n" , sendto_return);
-                    }            
-                free(send_buf);  
-            }
-            
-            // _--------------------------- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> TESTY
-            if(strcmp(rec_buf , "FRAME_TEST") == 0){
-                
-                char test_buf[30] = "TEST RAMKI-> DAREK TO GEJ";
-                uint8_t command = 0x2A;
-                uint8_t param_type = 0x53;
-                
-                send_frame(command, test_buf , strlen(test_buf) , param_type , 1);
-            }
-            
-            // ----------------------------------------------------------------------------------->>>>>>>>>>>>>>>>>>>>>> WORK ON FRAMES
-            
             int8_t ret = 0;
             uint8_t command,rw,type;
             uint16_t size;
@@ -250,7 +138,12 @@ void* udp_thread_1(void *arg)
             
             ret = decode_frame(rec_buf , &command , &rw , &type , &size , payload);
             
+#if PRINT_FRAME_DATA == 1          
             printf("decode_frame = %d , command: 0x%x , rw: %d , type: %c , size: %d , %s\n\n" , ret , command , rw , type , size , payload);
+#endif      
+            
+            //SET rw FLAG
+            if(rw) rw_flag = 0x01;
             
             if(!ret){ //IF rec_buf contain proper frame
 
@@ -328,20 +221,306 @@ void* udp_thread_1(void *arg)
                                 smarthouse_struct.temp_1_threshold_high = atof(payload);
                                 send_return = send_frame(command , "OK" , 4 , type , WRITE);
 #if PRINT_FRAME_DATA == 1
-                                printf("$ Zapis temp 1 high threshold OK = %d \n" , smarthouse_struct.temp_1_threshold_high);
+                                printf("$ Zapis temp 1 high threshold OK = %0.3f \n" , smarthouse_struct.temp_1_threshold_high);
 #endif 
                             }
                             else{
                                 send_return = send_frame(command , "Wrong type of temp threshold high" , 30 , type , WRITE);
                             } 
                         }
-                    }// IF THRESHOLD COMMAND
-                    else if(command == TEMP_1_TS_HIGH_ACT || command == TEMP_1_TS_LOW_ACT || command == TEMP_2_TS_HIGH_ACT || command == TEMP_2_TS_LOW_ACT || command == LUX_TS_HIGH_ACT || command == LUX_TS_LOW_ACT){
+                    }
+                
+                //COMMAND TEMP_1_TS_LOW
+                    else if(command == TEMP_1_TS_LOW){
+                        
+                        //GET VALUE
+                        sprintf(return_buf_glob , "%0.3f" , smarthouse_struct.temp_1_threshold_low);
+                        
+                        //READ 
+                        if(!rw) send_return = send_frame(command , return_buf_glob , strlen(return_buf_glob) , type , rw);
+                        
+                        //WRITE
+                        else {
+                            if(type == PARAM_TYPE_FLOAT) { //Check type
+                                smarthouse_struct.temp_1_threshold_low = atof(payload);
+                                send_return = send_frame(command , "OK" , 4 , type , WRITE);
+#if PRINT_FRAME_DATA == 1
+                                printf("$ Zapis temp 1 low threshold OK = %0.3f \n" , smarthouse_struct.temp_1_threshold_low);
+#endif 
+                            }
+                            else{
+                                send_return = send_frame(command , "Wrong type of temp threshold low" , 30 , type , WRITE);
+                            } 
+                        }
+                    }
+                
+                // IF THRESHOLD COMMAND
+                    else if(command == TEMP_1_TS_HIGH_ACT || command == TEMP_1_TS_LOW_ACT || command == TEMP_2_TS_HIGH_ACT || command == TEMP_2_TS_LOW_ACT || command == LUX_TS_HIGH_ACT || command == LUX_TS_LOW_ACT || command  == MOTION_ACT || command == BUTTON_ACT || command == WETNESS_ACT){
                         
                         frame_ptr = &frame_str;
                         processing_th_command(frame_ptr);
         
-                    }            
+                    }
+                
+                
+                
+                //COMMAND TEMP_2_ACTIVE
+                    else if(command == TEMP_2_ACTIVE){
+                        
+                        //GET VALUE
+                        sprintf(return_buf_glob , "%d" , smarthouse_struct.temp_2_activate);
+                        
+                        //READ 
+                        if(!rw) send_return = send_frame(command , return_buf_glob , strlen(return_buf_glob) , type , rw);
+                        
+                        //WRITE
+                        else {
+                            if(type == PARAM_TYPE_INT) { //Check type
+                                smarthouse_struct.temp_2_activate = atoi(payload);
+                                send_return = send_frame(command , "OK" , 4 , type , WRITE);
+#if PRINT_FRAME_DATA == 1
+                                printf("$ Zapis temp 2 active = %d \n" , smarthouse_struct.temp_2_activate);
+#endif     
+                            }
+                            else{
+                                send_return = send_frame(command , "Wrong type of temp active" , 30 , type , WRITE);
+                            } 
+                        }
+                    }
+                    
+                //COMMAND TEMP_2_VALUE
+                    else if(command == TEMP_2_VALUE){
+                        
+                        //GET VALUE
+                        sprintf(return_buf_glob , "%0.3f" , smarthouse_struct.temp_2_value);
+                        
+                        //READ 
+                        if(!rw) send_return = send_frame(command , return_buf_glob , strlen(return_buf_glob) , type , rw);
+                        
+                        //WRITE (USER CANT WRITE VALUE OF TEMP 2 !!!
+                        else send_return = send_frame(command , "You can't write value of temperature!", 40 , type , WRITE);   
+                    }
+                
+                
+                //COMMAND TEMP_2_TS_HIGH
+                    else if(command == TEMP_2_TS_HIGH){
+                        
+                        //GET VALUE
+                        sprintf(return_buf_glob , "%0.3f" , smarthouse_struct.temp_2_threshold_high);
+                        
+                        //READ 
+                        if(!rw) send_return = send_frame(command , return_buf_glob , strlen(return_buf_glob) , type , rw);
+                        
+                        //WRITE
+                        else {
+                            if(type == PARAM_TYPE_FLOAT) { //Check type
+                                smarthouse_struct.temp_2_threshold_high = atof(payload);
+                                send_return = send_frame(command , "OK" , 4 , type , WRITE);
+#if PRINT_FRAME_DATA == 1
+                                printf("$ Zapis temp 2 high threshold OK = %0.3f \n" , smarthouse_struct.temp_2_threshold_high);
+#endif 
+                            }
+                            else{
+                                send_return = send_frame(command , "Wrong type of temp threshold high" , 30 , type , WRITE);
+                            } 
+                        }
+                    }
+                
+                //COMMAND TEMP_2_TS_LOW
+                    else if(command == TEMP_2_TS_LOW){
+                        
+                        //GET VALUE
+                        sprintf(return_buf_glob , "%0.3f" , smarthouse_struct.temp_2_threshold_low);
+                        
+                        //READ 
+                        if(!rw) send_return = send_frame(command , return_buf_glob , strlen(return_buf_glob) , type , rw);
+                        
+                        //WRITE
+                        else {
+                            if(type == PARAM_TYPE_FLOAT) { //Check type
+                                smarthouse_struct.temp_2_threshold_low = atof(payload);
+                                send_return = send_frame(command , "OK" , 4 , type , WRITE);
+#if PRINT_FRAME_DATA == 1
+                                printf("$ Zapis temp 2 low threshold OK = %0.3f \n" , smarthouse_struct.temp_2_threshold_low);
+#endif 
+                            }
+                            else{
+                                send_return = send_frame(command , "Wrong type of temp threshold low" , 30 , type , WRITE);
+                            } 
+                        }
+                    }
+                
+                
+               //COMMAND LUX_ACTIVE
+                    else if(command == LUX_ACTIVE){
+                        
+                        //GET VALUE
+                        sprintf(return_buf_glob , "%d" , smarthouse_struct.light_sensor_activate);
+                        
+                        //READ 
+                        if(!rw) send_return = send_frame(command , return_buf_glob , strlen(return_buf_glob) , type , rw);
+                        
+                        //WRITE
+                        else {
+                            if(type == PARAM_TYPE_INT) { //Check type
+                                smarthouse_struct.light_sensor_activate = atoi(payload);
+                                send_return = send_frame(command , "OK" , 4 , type , WRITE);
+#if PRINT_FRAME_DATA == 1
+                                printf("$ Zapis lux active = %d \n" , smarthouse_struct.light_sensor_activate);
+#endif     
+                            }
+                            else{
+                                send_return = send_frame(command , "Wrong type of lux active" , 30 , type , WRITE);
+                            } 
+                        }
+                    }
+                    
+                //COMMAND LUX_VALUE
+                    else if(command == LUX_VALUE){
+                        
+                        //GET VALUE
+                        sprintf(return_buf_glob , "%d" , smarthouse_struct.light_value);
+                        
+                        //READ 
+                        if(!rw) send_return = send_frame(command , return_buf_glob , strlen(return_buf_glob) , type , rw);
+                        
+                        //WRITE (USER CANT WRITE VALUE OF LUX !!!
+                        else send_return = send_frame(command , "You can't write value of lux!", 40 , type , WRITE);   
+                    }
+                
+                //COMMAND LUX_TS_HIGH
+                    else if(command == LUX_TS_HIGH){
+                        
+                        //GET VALUE
+                        sprintf(return_buf_glob , "%d" , smarthouse_struct.light_threshold_high);
+                        
+                        //READ 
+                        if(!rw) send_return = send_frame(command , return_buf_glob , strlen(return_buf_glob) , type , rw);
+                        
+                        //WRITE
+                        else {
+                            if(type == PARAM_TYPE_INT) { //Check type
+                                smarthouse_struct.light_threshold_high = atoi(payload);
+                                send_return = send_frame(command , "OK" , 4 , type , WRITE);
+#if PRINT_FRAME_DATA == 1
+                                printf("$ Zapis lux high threshold OK = %d \n" , smarthouse_struct.light_threshold_high);
+#endif 
+                            }
+                            else{
+                                send_return = send_frame(command , "Wrong type of lux threshold high" , 30 , type , WRITE);
+                            } 
+                        }
+                    }
+                
+                //COMMAND LUX_TS_LOW
+                    else if(command == LUX_TS_LOW){
+                        
+                        //GET VALUE
+                        sprintf(return_buf_glob , "%d" , smarthouse_struct.light_threshold_low);
+                        
+                        //READ 
+                        if(!rw) send_return = send_frame(command , return_buf_glob , strlen(return_buf_glob) , type , rw);
+                        
+                        //WRITE
+                        else {
+                            if(type == PARAM_TYPE_INT) { //Check type
+                                smarthouse_struct.light_threshold_low = atoi(payload);
+                                send_return = send_frame(command , "OK" , 4 , type , WRITE);
+#if PRINT_FRAME_DATA == 1
+                                printf("$ Zapis lux low threshold OK = %d \n" , smarthouse_struct.light_threshold_low);
+#endif 
+                            }
+                            else{
+                                send_return = send_frame(command , "Wrong type of temp threshold low" , 30 , type , WRITE);
+                            } 
+                        }
+                    }
+                
+                //COMMAND WETNESS_ACTIVE
+                    else if(command == WETNESS_ACTIVE){
+                        
+                        //GET VALUE
+                        sprintf(return_buf_glob , "%d" , smarthouse_struct.wetness_sensor_activate);
+                        
+                        //READ 
+                        if(!rw) send_return = send_frame(command , return_buf_glob , strlen(return_buf_glob) , type , rw);
+                        
+                        //WRITE
+                        else {
+                            if(type == PARAM_TYPE_INT) { //Check type
+                                smarthouse_struct.wetness_sensor_activate = atoi(payload);
+                                send_return = send_frame(command , "OK" , 4 , type , WRITE);
+#if PRINT_FRAME_DATA == 1
+                                printf("$ Zapis wetness active = %d \n" , smarthouse_struct.wetness_sensor_activate);
+#endif     
+                            }
+                            else{
+                                send_return = send_frame(command , "Wrong type of wetnesss active" , 30 , type , WRITE);
+                            } 
+                        }
+                    }
+                
+                //COMMAND MOTION_ACTIVE
+                    else if(command == MOTION_ACTIVE){
+                        
+                        //GET VALUE
+                        sprintf(return_buf_glob , "%d" , smarthouse_struct.motion_sensor_activate);
+                        
+                        //READ 
+                        if(!rw) send_return = send_frame(command , return_buf_glob , strlen(return_buf_glob) , type , rw);
+                        
+                        //WRITE
+                        else {
+                            if(type == PARAM_TYPE_INT) { //Check type
+                                smarthouse_struct.motion_sensor_activate = atoi(payload);
+                                send_return = send_frame(command , "OK" , 4 , type , WRITE);
+#if PRINT_FRAME_DATA == 1
+                                printf("$ Zapis motion sensor active = %d \n" , smarthouse_struct.motion_sensor_activate);
+#endif     
+                            }
+                            else{
+                                send_return = send_frame(command , "Wrong type of motion sensor active" , 30 , type , WRITE);
+                            } 
+                        }
+                    }
+                
+                //COMMAND MOTION LAST DET
+                    else if(command == MOTION_LAST_DET){
+                        
+                        //GET VALUE
+                        sprintf(return_buf_glob , "%s" , smarthouse_struct.last_move);
+                        
+                        //READ 
+                        if(!rw) send_return = send_frame(command , return_buf_glob , strlen(return_buf_glob) , type , rw);
+                        
+                        //WRITE (USER CANT WRITE VALUE OF LUX !!!
+                        else send_return = send_frame(command , "You can't write value of last move!", 40 , type , WRITE);   
+                    }
+                
+                //COMMAND LOG
+                    else if(command == LOG){
+ 
+                        //READ 
+                        if(!rw){
+                            FILE *fd;
+                            char send_buf[50];
+                            size_t len = 0;
+                            
+                            fd = fopen("/home/pi/SmartHouse/report_mk" , "r" );         // Atribute "r" means read
+                            
+                            while(getline(&send_buf , &len , fd) != -1) //READ NEXT LINE
+                            {    
+                                send_return = send_frame(command , send_buf , sizeof(send_buf) , type , rw);
+                            }
+                            
+                            fclose(fd);
+                        }
+                        //WRITE (USER CANT WRITE VALUE OF LUX !!!
+                        else send_return = send_frame(command , "You can't write value of LOG!", 40 , type , WRITE);   
+                        
+                        
+                    }
+
                     else{
                         char return_buf[15] = "Wrong command!";  
                         if(send_return = send_frame(command , return_buf , strlen(return_buf) , type , rw) != 0){
@@ -349,7 +528,9 @@ void* udp_thread_1(void *arg)
                         }
                     } 
             } 
-           
+
+            //Zapis do pliku jeżeli nastapił zapis
+            if(rw_flag) {save_config(); rw_flag = 0;}
             
             command = 0; rw = 0 ; type = 0 ; size = 0; ret = 0;
             
@@ -557,8 +738,7 @@ int8_t is_action_name_ok(uint8_t action_name , uint8_t* array_index){
     return return_param;
 }
 
-
-                   
+               
 /* 
  * Func:   procesing_temp_th_command
  * Description: Process Temperature Threshold Commands
@@ -589,19 +769,34 @@ void processing_th_command(struct frame_struct* fr_ptr){
 //        //GET VALUE
         if(fr_ptr->command == TEMP_1_TS_HIGH_ACT){
             sm_struct_ptr = smarthouse_struct.temp_1_threshold_high_action; sprintf(param_string , "temp_1_threshold_high_action");}
+        
         if(fr_ptr->command == TEMP_1_TS_LOW_ACT){
             sm_struct_ptr = smarthouse_struct.temp_1_threshold_low_action; sprintf(param_string , "temp_1_threshold_low_action");}
+        
         if(fr_ptr->command == TEMP_2_TS_HIGH_ACT){
             sm_struct_ptr = smarthouse_struct.temp_2_threshold_high_action; sprintf(param_string , "temp_2_threshold_high_action");}
+        
         if(fr_ptr->command == TEMP_2_TS_LOW_ACT){
             sm_struct_ptr = smarthouse_struct.temp_2_threshold_low_action; sprintf(param_string , "temp_2_threshold_low_action"); }
+        
         if(fr_ptr->command == LUX_TS_HIGH_ACT){
             sm_struct_ptr = smarthouse_struct.light_threshold_high_action; sprintf(param_string , "light_threshold_high_action");}
+        
         if(fr_ptr->command == LUX_TS_LOW_ACT){
             sm_struct_ptr = smarthouse_struct.light_threshold_low_action; sprintf(param_string , "light_threshold_low_action");}
 
+        if(fr_ptr->command == MOTION_ACT){
+            sm_struct_ptr = smarthouse_struct.motion_threshold_action; sprintf(param_string , "motion_threshold_action");}
+        
+        if(fr_ptr->command == BUTTON_ACT){
+            sm_struct_ptr = smarthouse_struct.button_action; sprintf(param_string , "button_action");}
+        
+        if(fr_ptr->command == WETNESS_ACT){
+            sm_struct_ptr = smarthouse_struct.wetness_threshold_action; sprintf(param_string , "wetness_threshold_action");}
+        
         //Prepare bufors
          sprintf(return_buf , "%d" , sm_struct_ptr[array_id]);  
+         
 #if PRINT_FRAME_DATA == 1
          printf("%s\n" , return_buf);
 #endif
@@ -609,6 +804,7 @@ void processing_th_command(struct frame_struct* fr_ptr){
         //READ 
         if(!fr_ptr->rw){ 
             send_return = send_frame(fr_ptr->command , return_buf , strlen(return_buf) , fr_ptr->param_type , fr_ptr->rw);
+            
 #if PRINT_FRAME_DATA == 1
             printf("$ Read ok, param: %s value: %s \n" , param_string , return_buf);
 #endif
@@ -618,6 +814,7 @@ void processing_th_command(struct frame_struct* fr_ptr){
             if(fr_ptr->param_type == PARAM_TYPE_INT) { //Check type
                 sm_struct_ptr[array_id] = action;
                 send_return = send_frame(fr_ptr->command , "OK" , 4 , fr_ptr->param_type , WRITE);
+                
 #if PRINT_FRAME_DATA == 1
                 printf("$ Zapis %s [%d] OK = %d \n" ,param_string, array_id, sm_struct_ptr[array_id]);
 #endif 
@@ -625,6 +822,7 @@ void processing_th_command(struct frame_struct* fr_ptr){
             else{
                 sprintf(return_buf , "Wrong type of %s" , param_string);
                 send_return = send_frame(fr_ptr->command  , return_buf , sizeof(return_buf) , fr_ptr->param_type , WRITE);
+                
 #if PRINT_FRAME_DATA == 1
                 printf("%s\n" , return_buf);
 #endif

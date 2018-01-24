@@ -25,7 +25,7 @@ extern "C" {
 #define DUMP(buf,varname) sprintf(buf, "%s", #varname);  
     
 // >>>>>>>> SOCKET SETTINGS
-#define PORT 8888
+#define PORT 8889
 
 // >>>>>>>> Variables
 #define BUFLEN 512
@@ -70,6 +70,8 @@ extern "C" {
     
 #define WETNESS_ACTIVE      ((uint8_t)0x41) //Active Wetness sensor
 #define WETNESS_ACT         ((uint8_t)0x42) //Wetness sensor actions
+    
+#define LOG                 ((uint8_t)0x43) //Retur all logs from report file
     
 // >>>>>>>>>>>>> FRAME Structure
 struct frame_struct{
