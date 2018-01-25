@@ -25,7 +25,7 @@ extern "C" {
 #define DUMP(buf,varname) sprintf(buf, "%s", #varname);  
     
 // >>>>>>>> SOCKET SETTINGS
-#define PORT 8889
+#define PORT 8888
 
 // >>>>>>>> Variables
 #define BUFLEN 512

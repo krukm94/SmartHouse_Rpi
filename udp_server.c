@@ -502,26 +502,26 @@ void* udp_thread_1(void *arg)
  
                         //READ 
                         if(!rw){
-                            FILE *fd;
-                            char send_buf[50];
+                            FILE *fd1;
+                            char *send_buf;
                             size_t len = 0;
                             
-                            fd = fopen("/home/pi/SmartHouse/report_mk" , "r" );         // Atribute "r" means read
+                            send_buf = malloc(150);
                             
-                            while(getline(&send_buf , &len , fd) != -1) //READ NEXT LINE
+                            fd1 = fopen("/home/pi/SmartHouse/report_mk" , "r" );         // Atribute "r" means read
+                            
+                            while(getline(&send_buf , &len , fd1) != -1) //READ NEXT LINE
                             {    
-                                send_return = send_frame(command , send_buf , sizeof(send_buf) , type , rw);
-                            }
-                            
-                            fclose(fd);
+                                send_return = send_frame(command , send_buf , strlen(send_buf), type , rw);
+                                memset(send_buf , 0 , len);
+                            }                          
+                            fclose(fd1);
+                            free(send_buf);
                         }
                         //WRITE (USER CANT WRITE VALUE OF LUX !!!
-                        else send_return = send_frame(command , "You can't write value of LOG!", 40 , type , WRITE);   
-                        
-                        
+                        else send_return = send_frame(command , "You can't write value of LOG!", 40 , type , WRITE);                                              
                     }
-
-                    else{
+                   else{
                         char return_buf[15] = "Wrong command!";  
                         if(send_return = send_frame(command , return_buf , strlen(return_buf) , type , rw) != 0){
                                 printf("$ Warning: sendto , file udp_server.c , line 258\n");
@@ -529,7 +529,7 @@ void* udp_thread_1(void *arg)
                     } 
             } 
 
-            //Zapis do pliku jeżeli nastapił zapis
+            //Zapis do pliku jeżeli nastapił zapis jakies wartosci
             if(rw_flag) {save_config(); rw_flag = 0;}
             
             command = 0; rw = 0 ; type = 0 ; size = 0; ret = 0;
